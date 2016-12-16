@@ -19,7 +19,6 @@ public class jdbcUtil {
 			rs.close();
 			rs=null;
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

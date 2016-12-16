@@ -7,17 +7,15 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import kr.or.dgit.bigdate.coffee.dao.ProductDao;
 import kr.or.dgit.bigdate.coffee.dao.SaleDao;
+import kr.or.dgit.bigdate.coffee.dao.ProductDao;
 import kr.or.dgit.bigdate.coffee.dto.Sale;
 import kr.or.dgit.bigdate.coffee.list.CoffeeList;
-import kr.or.dgit.bigdate.coffee.list.CoffeeLst;
 import kr.or.dgit.bigdate.coffee.dto.Product;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
-import java.awt.CardLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,20 +25,22 @@ import javax.swing.JButton;
 import javax.swing.SwingConstants;
 import javax.swing.JComboBox;
 
+@SuppressWarnings("serial")
 public class CoffeeUi extends JFrame implements ActionListener {
 
 	private JPanel contentPane;
 	private JTextField tftitle;
 	private JTextField tfprice;
 	private JTextField tfamount;
-	private JTextField tfprofit;
+	private JTextField tfmargin;
 	private JComboBox<Product> cbcode;
+	private List<Product> list;
 	private JButton btnAdd;
 	private JButton btnResult1;
-
-	/**
-	 * Launch the application.
-	 */
+	private JButton btnResult2;
+	private CoffeeList list1;
+	private CoffeeList list2;
+	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -76,8 +76,7 @@ public class CoffeeUi extends JFrame implements ActionListener {
 		Main_panel.add(lblcode);
 		
 		cbcode = new JComboBox<>();
-//		cbcode.addActionListener(this);
-		List<Product> list=SaleDao.getInstance().selectInfoByAll();
+		list = ProductDao.getInstance().selectInfoByA();
 		for (Product product : list) {
 			cbcode.addItem(product);
 		}
@@ -117,13 +116,13 @@ public class CoffeeUi extends JFrame implements ActionListener {
 		tfamount.setColumns(10);
 		Main_panel.add(tfamount);
 		
-		JLabel lblprofit = new JLabel("마진율");
-		lblprofit.setHorizontalAlignment(SwingConstants.RIGHT);
-		Main_panel.add(lblprofit);
+		JLabel lblmargin = new JLabel("마진율");
+		lblmargin.setHorizontalAlignment(SwingConstants.RIGHT);
+		Main_panel.add(lblmargin);
 		
-		tfprofit = new JTextField();
-		tfprofit.setColumns(10);
-		Main_panel.add(tfprofit);
+		tfmargin = new JTextField();
+		tfmargin.setColumns(10);
+		Main_panel.add(tfmargin);
 		
 		JPanel Btn_panel = new JPanel();
 		contentPane.add(Btn_panel, BorderLayout.SOUTH);
@@ -132,34 +131,60 @@ public class CoffeeUi extends JFrame implements ActionListener {
 		btnAdd.addActionListener(this);
 		Btn_panel.add(btnAdd);
 		
-		btnResult1 = new JButton("판매금액순");
+		btnResult1 = new JButton("마진액순");
 		btnResult1.addActionListener(this);
 		Btn_panel.add(btnResult1);
 		
-		JButton btnResult2 = new JButton("마진액순");
+		btnResult2 = new JButton("판매액순");
+		btnResult2.addActionListener(this);
 		Btn_panel.add(btnResult2);
 	}
 
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == btnResult1) {
-			actionPerformedBtnResult1(e);
+		if (e.getSource() == btnResult2) {
+			showTableList("판 매 액 순 위", true);
 		}
-		
+		if (e.getSource() == btnResult1) {
+			showTableList("마 진 액 순 위", false);
+		}
 		if (e.getSource() == btnAdd) {
 			actionPerformedBtnAdd(e);
 		}
 	}
-	protected void actionPerformedBtnAdd(ActionEvent e) {
-		Sale info = getObject(); //입력된 text 겟오브텍트하나만듬
-		if(btnAdd.getText().equals("입력")){
-			ProductDao.getInstance().insertInfo(info);
-			JOptionPane.showMessageDialog(null, "입력되었습니다.");
-		}else{ //수정
-//			CoffeeDao.getInstance().updateInfo(info);
-//			JOptionPane.showMessageDialog(null, "수정되었습니다.");
-//			btnAdd.setText("추가"); 
+	
+ private void showTableList(String title, boolean issale_price) {
+		if (issale_price){
+			if (list1==null) {
+				list1 = new CoffeeList(issale_price);
+				list1.setTitle(title);
+			}
+			refreshListFrame(list1);
+		}else{
+			if (list2 == null){
+				list2 = new CoffeeList(issale_price);
+				list2.setTitle(title);
+			}
+			refreshListFrame(list2);
 		}
-		clearTf();
+	}	
+	
+	private void refreshListFrame(CoffeeList list) {
+			list.reloadData();
+			list.setVisible(true);		
+	}
+
+	protected void actionPerformedBtnAdd(ActionEvent e) {
+		Sale sale = getObject(); 
+		if(btnAdd.getText().equals("입력")){
+			SaleDao.getInstance().insertInfo(sale);
+		}
+		clearTf();	
+		if (list1 != null){
+			list1.reloadData();
+		}
+		if (list2 != null){
+			list2.reloadData();
+		}
 	}
 
 	private void clearTf() {
@@ -167,30 +192,23 @@ public class CoffeeUi extends JFrame implements ActionListener {
 		tftitle.setText("");
 		tfprice.setText("");
 		tfamount.setText("");
-		tfprofit.setText("");
-		
+		tfmargin.setText("");
 	}
 
 	private Sale getObject() {
 		Product code = (Product) cbcode.getSelectedItem();
-		String title = tftitle.getText().trim();
 		int price = Integer.parseInt(tfprice.getText().trim());
 		int amount = Integer.parseInt(tfamount.getText().trim());
-		int profit = Integer.parseInt(tfprofit.getText().trim());
-		return new Sale(code, price, amount, profit);
+		int margin = Integer.parseInt(tfmargin.getText().trim());
+		
+		return new Sale(code, price, amount, margin);
 	}
+	
 	public void setObject(Sale sale){
 		cbcode.setSelectedItem(sale.getCode());
+		
 		tfprice.setText(sale.getPrice()+"");
 		tfamount.setText(sale.getAmount()+"");
-		tfprofit.setText(sale.getProfit()+"");
-//		btnAdd.setText("수정");
-	}
-
-	protected void actionPerformedBtnResult1(ActionEvent e) {
-		CoffeeList list = new CoffeeList();
-		/*setContentPane(list);*/
-		list.setVisible(true);
-		revalidate();
+		tfmargin.setText(sale.getMargin()+"");
 	}
 }

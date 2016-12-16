@@ -30,7 +30,6 @@ public class Product {
 
 	public String[] toArray() {
 		return new String[]{code,title};
-	
+		
 	}
-	
 }
